@@ -220,13 +220,15 @@ export class XmlStream {
   /** Elements delivered so far, in order. */
   readonly elements: XmlElement[] = [];
 
-  constructor(
-    private handlers: {
-      onRoot?: (name: string, attrs: Record<string, string>) => void;
-      onElement?: (el: XmlElement) => void;
-      onEnd?: () => void;
-    } = {},
-  ) {}
+  private handlers: {
+    onRoot?: (name: string, attrs: Record<string, string>) => void;
+    onElement?: (el: XmlElement) => void;
+    onEnd?: () => void;
+  };
+
+  constructor(handlers: XmlStream["handlers"] = {}) {
+    this.handlers = handlers;
+  }
 
   get done(): boolean {
     return this.ended;

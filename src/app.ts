@@ -6,6 +6,7 @@ import { detectNmap, sudoAvailable } from "./nmap.ts";
 import type { ScanConfig } from "./profiles.ts";
 import { ScanStore } from "./store.ts";
 import { Controller } from "./ui/controller.ts";
+import { editTargets } from "./ui/screens/scan.ts";
 import { renderApp } from "./ui/render.ts";
 
 export interface AppOptions {
@@ -55,6 +56,7 @@ export async function run(options: AppOptions = {}): Promise<void> {
   } else if (!options.open) {
     controller.state.screen = controller.state.history.records.length > 0 ? "dashboard" : "scan";
   }
+  if (controller.state.screen === "scan" && !controller.state.config.targets.trim()) editTargets(controller.state);
 
   const app = await createApp({
     theme: options.theme,

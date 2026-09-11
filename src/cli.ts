@@ -1,7 +1,10 @@
 /**
  * Argument parsing and entry point. `nmaptui --help` is the contract.
  */
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { existsSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { diffScans, formatDiff } from "./diff.ts";
 import { findings } from "./analysis.ts";
 import { detectNmap } from "./nmap.ts";
@@ -22,11 +25,18 @@ Usage
   nmaptui import <scan.xml> [label]     add an nmap -oX file to the history
   nmaptui history                       list saved scans
   nmaptui profiles                      list scan profiles and their flags
+  nmaptui update                        upgrade to the latest release
+  nmaptui uninstall                     remove nmaptui (scans and history are kept)
 
 Options
   -P, --profile <id>    Start from a profile (see: nmaptui profiles)
   -p, --ports <spec>    Port spec, e.g. 22,80,443 or 1-65535
+      --top-ports <n>   Scan the n most common ports
   -T<0-5>               Timing template
+  -sT | -sS | -sU | -sn Technique: connect, SYN, UDP, ping sweep
+  -sV / --no-version    Version detection on (default) / off
+  -sC, --script <expr>  Default scripts / an NSE script expression
+  -O, -A, -Pn, -n       OS detection, aggressive, skip ping, no DNS
   -iL <file>            Read targets from a file
       --start           Start the scan immediately
       --sudo            Run nmap through sudo -n for raw-socket scans
@@ -49,7 +59,7 @@ Keys
 `;
 
 export interface ParsedArgs {
-  command: "tui" | "open" | "diff" | "print" | "import" | "history" | "profiles" | "help" | "version";
+  command: "tui" | "open" | "diff" | "print" | "import" | "history" | "profiles" | "help" | "version" | "update" | "uninstall";
   positional: string[];
   profile?: string;
   config: Partial<ScanConfig>;
@@ -97,9 +107,53 @@ export function parseArgs(argv: string[]): ParsedArgs {
       case "-p":
       case "--ports":
         parsed.config.ports = next();
+        parsed.config.fast = false;
         break;
       case "-iL":
         parsed.config.targetFile = next();
+        break;
+      case "--top-ports":
+        parsed.config.topPorts = Number(next());
+        parsed.config.fast = false;
+        break;
+      case "-sT":
+        parsed.config.technique = "connect";
+        break;
+      case "-sS":
+        parsed.config.technique = "syn";
+        break;
+      case "-sU":
+        parsed.config.technique = "udp";
+        break;
+      case "-sn":
+        parsed.config.technique = "ping";
+        break;
+      case "-sV":
+        parsed.config.serviceVersion = true;
+        break;
+      case "--no-version":
+        parsed.config.serviceVersion = false;
+        break;
+      case "-sC":
+        parsed.config.defaultScripts = true;
+        break;
+      case "--script":
+        parsed.config.scripts = next();
+        break;
+      case "-O":
+        parsed.config.osDetect = true;
+        break;
+      case "-A":
+        parsed.config.aggressive = true;
+        break;
+      case "-Pn":
+        parsed.config.skipPing = true;
+        break;
+      case "-n":
+        parsed.config.noDns = true;
+        break;
+      case "-F":
+        parsed.config.fast = true;
         break;
       case "--start":
         parsed.start = true;
@@ -148,7 +202,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
     }
   }
   const [first, ...others] = rest;
-  if (first && ["open", "diff", "print", "import", "history", "profiles", "help"].includes(first)) {
+  if (first && ["open", "diff", "print", "import", "history", "profiles", "help", "update", "uninstall"].includes(first)) {
     parsed.command = first as ParsedArgs["command"];
     parsed.positional = others;
   } else {
@@ -176,6 +230,42 @@ export function historyText(store: ScanStore, json: boolean): string {
     .join("\n");
 }
 
+/**
+ * Where this copy was installed, worked out from the running module rather than
+ * guessed: <prefix>/lib/node_modules/@profullstack/nmaptui/dist/cli.js for an
+ * npm global install, or a bun global for `bun add -g`.
+ */
+export function installInfo(moduleUrl: string = import.meta.url): { manager: "npm" | "bun"; prefix: string } {
+  const here = dirname(realpathSync(fileURLToPath(moduleUrl)));
+  if (here.includes(`${"/"}.bun${"/"}`)) return { manager: "bun", prefix: "" };
+  // dist -> package -> @profullstack -> node_modules -> lib -> prefix
+  const prefix = resolve(here, "..", "..", "..", "..", "..");
+  return { manager: "npm", prefix };
+}
+
+function manage(action: "update" | "uninstall"): void {
+  const info = installInfo();
+  const pkg = "@profullstack/nmaptui";
+  const command =
+    info.manager === "bun"
+      ? action === "update" ? ["bun", "add", "-g", `${pkg}@latest`] : ["bun", "remove", "-g", pkg]
+      : action === "update"
+        ? ["npm", "install", "-g", "--prefix", info.prefix, "--no-audit", "--no-fund", `${pkg}@latest`]
+        : ["npm", "uninstall", "-g", "--prefix", info.prefix, pkg];
+  process.stdout.write(`${command.join(" ")}\n`);
+  const res = spawnSync(command[0] as string, command.slice(1), { stdio: "inherit" });
+  if (res.error) throw res.error;
+  if (res.status !== 0) {
+    process.exitCode = res.status ?? 1;
+    return;
+  }
+  if (action === "uninstall") process.stdout.write(`removed. Saved scans stay in ${defaultDataDir()}; delete that directory if you want them gone too.\n`);
+  else {
+    const version = spawnSync(info.manager === "bun" ? "nmaptui" : resolve(info.prefix, "bin", "nmaptui"), ["--version"], { encoding: "utf8" });
+    process.stdout.write(version.stdout || "updated\n");
+  }
+}
+
 export async function main(argv: string[]): Promise<void> {
   let args: ParsedArgs;
   try {
@@ -198,6 +288,10 @@ export async function main(argv: string[]): Promise<void> {
       return;
     case "profiles":
       process.stdout.write(profilesText(args.json) + "\n");
+      return;
+    case "update":
+    case "uninstall":
+      manage(args.command);
       return;
     case "history":
       process.stdout.write(historyText(new ScanStore(args.dataDir), args.json) + "\n");

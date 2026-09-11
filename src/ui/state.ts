@@ -7,7 +7,7 @@ import type { ScanDiff } from "../diff.ts";
 import type { Finding, Severity } from "../analysis.ts";
 import type { ScanResult, TaskEvent } from "../model.ts";
 import type { NmapInfo, RunningScan } from "../nmap.ts";
-import { defaultConfig, PROFILES, type ScanConfig } from "../profiles.ts";
+import { applyProfile, defaultConfig, PROFILES, type ScanConfig } from "../profiles.ts";
 import type { ScanRecord } from "../store.ts";
 import type { ExportFormat } from "../report.ts";
 import { LineEditor } from "./editor.ts";
@@ -95,7 +95,7 @@ export function createState(partial: Partial<UiState> = {}): UiState {
     tasks: [],
     log: [],
     logFromEnd: 0,
-    config: defaultConfig(),
+    config: applyProfile(defaultConfig(), PROFILES.find((p) => p.id === "quick")!),
     profileIndex: PROFILES.findIndex((p) => p.id === "quick"),
     builder: { pane: "form", field: 0, editing: false, editor: new LineEditor(), offset: 0 },
     hosts: { selected: 0, offset: 0, filter: "", filtering: false, editor: new LineEditor(), sort: "addr", openOnly: false, upOnly: true, pane: "list", detailScroll: 0 },

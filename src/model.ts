@@ -121,20 +121,36 @@ export function emptyResult(): ScanResult {
   return { scanner: "nmap", args: "", version: "", scanInfo: [], hosts: [], tasks: [], partial: true };
 }
 
+/**
+ * nmap writes non-ASCII bytes in script output as \xHH escapes. Turn runs of
+ * them back into text so a UTF-8 page title reads as one.
+ */
+export function decodeScriptText(text: string): string {
+  if (!text.includes("\\x")) return text;
+  return text.replace(/(?:\\x[0-9A-Fa-f]{2})+/g, (run) => {
+    const bytes = Uint8Array.from(run.match(/[0-9A-Fa-f]{2}/g)!.map((h) => parseInt(h, 16)));
+    try {
+      return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    } catch {
+      return run;
+    }
+  });
+}
+
 function parseScript(el: XmlElement): Script {
   const elems: Script["elems"] = [];
   const walk = (node: XmlElement, prefix: string): void => {
     for (const c of node.children) {
       if (c.name === "elem") {
         const key = c.attrs.key ? `${prefix}${c.attrs.key}` : prefix.replace(/\.$/, "");
-        elems.push({ key, value: c.text.trim() });
+        elems.push({ key, value: decodeScriptText(c.text.trim()) });
       } else if (c.name === "table") {
         walk(c, c.attrs.key ? `${prefix}${c.attrs.key}.` : prefix);
       }
     }
   };
   walk(el, "");
-  return { id: el.attrs.id ?? "", output: (el.attrs.output ?? "").replace(/\r/g, ""), elems };
+  return { id: el.attrs.id ?? "", output: decodeScriptText((el.attrs.output ?? "").replace(/\r/g, "")), elems };
 }
 
 function parseService(el: XmlElement | undefined): Service | undefined {

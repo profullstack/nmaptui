@@ -228,7 +228,16 @@ export function commandLine(config: ScanConfig, program = "nmap"): string {
 
 /** Recognise a profile from its argument shape, for the history list. */
 export function summarizeArgs(args: string): string {
-  const parts = args.split(/\s+/);
-  const flags = parts.filter((p) => p.startsWith("-") && !/^-o[XNGAS]$/.test(p) && p !== "--stats-every" && p !== "-v");
+  const parts = args.split(/\s+/).slice(1);
+  const flags: string[] = [];
+  for (let i = 0; i < parts.length; i++) {
+    const p = parts[i] as string;
+    if (/^-o[XNGAS]$/.test(p) || p === "--stats-every") {
+      i++;
+      continue;
+    }
+    if (p === "-v" || p === "-" || !p.startsWith("-")) continue;
+    flags.push(p);
+  }
   return flags.join(" ");
 }

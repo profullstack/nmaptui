@@ -84,6 +84,14 @@ export function cycleField(field: Field, config: ScanConfig, delta: number): voi
   }
 }
 
+/** Put the caret in the targets field, for a builder that opens empty. */
+export function editTargets(state: UiState): void {
+  state.builder.pane = "form";
+  state.builder.field = 0;
+  state.builder.editing = true;
+  state.builder.editor.set(state.config.targets);
+}
+
 export function selectProfile(state: UiState, index: number): void {
   const profile = PROFILES[index];
   if (!profile) return;
@@ -301,13 +309,6 @@ export function handleScanKey(state: UiState, event: KeyEvent, ctx: Ctx): boolea
       return true;
     default:
       break;
-  }
-  // Typing straight into a text field starts editing with that character.
-  if (field.kind === "text" && event.char && !event.ctrl && !event.alt && event.char >= " " && !/^[0-9]$/.test(event.char)) {
-    b.editing = true;
-    b.editor.set(fieldValue(field, state.config));
-    b.editor.insert(event.char);
-    return true;
   }
   return false;
 }

@@ -75,14 +75,14 @@ export function renderDashboard(state: UiState, ui: Container, ctx: Ctx): void {
             { label: "filtered", value: ov.ports.filtered, max: total, color: theme.warning, text: String(ov.ports.filtered) },
             { label: "closed", value: ov.ports.closed, max: total, color: theme.muted, text: String(ov.ports.closed) },
           ],
-          { labelWidth: 9, valueWidth: 7 },
+          { labelWidth: 9, valueWidth: 7, style: "smooth" },
         );
         p.label(`${ov.services} distinct services`);
       });
       row.panel({ title: " Findings " }, (p) => {
         for (const sev of SEVERITY_ORDER) {
           const n = bySeverity.get(sev) ?? 0;
-          p.meter({ label: sev, value: n, max: Math.max(1, list.length), color: severityColor(theme, sev), text: String(n), labelWidth: 9, valueWidth: 4 });
+          p.meter({ label: sev, value: n, max: Math.max(1, list.length), color: severityColor(theme, sev), text: String(n), labelWidth: 9, valueWidth: 4, style: "smooth" });
         }
       });
     });
