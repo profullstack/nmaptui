@@ -1,0 +1,71 @@
+{
+  "name": "@profullstack/nmaptui",
+  "version": "0.1.0",
+  "description": "An admin console for nmap in the terminal: build scans from profiles, watch them run live, browse hosts and services, triage findings, diff scans over time and export reports. Bun and Node, built on HQTUI.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Profullstack, Inc.",
+  "engines": {
+    "bun": ">=1.1",
+    "node": ">=22.6"
+  },
+  "bin": {
+    "nmaptui": "./bin/nmaptui.mjs"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "start": "bun src/cli.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --experimental-strip-types --test test/*.test.ts",
+    "test:bun": "bun test test/",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@profullstack/hqtui": "^0.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "typescript": "^5.7.2"
+  },
+  "keywords": [
+    "nmap",
+    "network",
+    "scanner",
+    "port-scanner",
+    "security",
+    "sysadmin",
+    "tui",
+    "terminal",
+    "cli",
+    "hqtui",
+    "bun"
+  ],
+  "homepage": "https://github.com/profullstack/nmaptui#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/profullstack/nmaptui.git"
+  },
+  "bugs": {
+    "url": "https://github.com/profullstack/nmaptui/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}
