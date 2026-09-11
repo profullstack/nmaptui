@@ -25,8 +25,10 @@ die() { printf 'nmaptui: %s\n' "$*" >&2; exit 1; }
 # under `node`. Bun works too, so a box with only bun is not turned away.
 runtime=""
 if command -v node >/dev/null 2>&1; then
-	major="$(node -p 'Number(process.versions.node.split(".")[0])' 2>/dev/null || echo 0)"
-	minor="$(node -p 'Number(process.versions.node.split(".")[1])' 2>/dev/null || echo 0)"
+	# `node -p` colourises its output on a TTY, so read `node -v` instead.
+	nodev="$(node -v 2>/dev/null | sed 's/^v//')"
+	major="${nodev%%.*}"; rest="${nodev#*.}"; minor="${rest%%.*}"
+	case "$major$minor" in *[!0-9]*|"") major=0; minor=0 ;; esac
 	if [ "$major" -gt 22 ] || { [ "$major" -eq 22 ] && [ "$minor" -ge 6 ]; }; then
 		runtime="node"
 	else
