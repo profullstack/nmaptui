@@ -42,11 +42,13 @@ nmaptui print scan.xml --format md   # a report on stdout
 
 Keys: `1`-`8` switch screens, `?` lists every key, `:` opens the command palette, `e` exports, `q` quits.
 
+Every technique and profile, with the exact nmap command each one runs and worked examples, is in **[docs/scan-types.md](docs/scan-types.md)**.
+
 ## Screens
 
 ### New scan
 
-Eighteen profiles down the left (Quick, Intense, Ping sweep, Vulnerability scripts, Web services, Windows / SMB, Databases, Top 100 UDP and so on). Every nmap option that matters on the right, grouped and explained one line at a time. The exact command nmap will get is always underneath, with an address count for the targets you typed and a warning when the scan needs root.
+Eighteen profiles down the left (Quick, Intense, Ping sweep, Vulnerability scripts, Web services, Windows / SMB, Databases, Top 100 UDP and so on; all listed in [docs/scan-types.md](docs/scan-types.md)). Every nmap option that matters on the right, grouped and explained one line at a time. The exact command nmap will get is always underneath, with an address count for the targets you typed and a warning when the scan needs root.
 
 ![the scan builder](docs/screenshots/builder.png)
 
@@ -127,6 +129,8 @@ nmaptui uninstall                     remove nmaptui (scans and history are kept
 -M, --no-mouse        Disable mouse tracking
     --json            history/profiles: machine-readable output
 ```
+
+Scan techniques, profiles and example invocations: [docs/scan-types.md](docs/scan-types.md).
 
 `print` and `diff` work in pipes and cron jobs, so a nightly `nmaptui diff last.xml tonight.xml` in a mail is a few lines of shell.
 
