@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { defaultDataDir, ScanStore, targetsFromArgs } from "../src/store.ts";
 import { fixture, scan } from "./helpers.ts";
@@ -71,6 +71,6 @@ test("imports a file and reconciles strays", () => {
 
 test("the data dir honours the environment", () => {
   assert.equal(defaultDataDir({ NMAPTUI_DATA_DIR: "/x" }), "/x");
-  assert.equal(defaultDataDir({ XDG_DATA_HOME: "/y" }), "/y/nmaptui");
-  assert.match(defaultDataDir({}), /\.local\/share\/nmaptui$/);
+  assert.equal(defaultDataDir({ XDG_DATA_HOME: "/y" }), join("/y", "nmaptui"));
+  assert.equal(defaultDataDir({}), join(homedir(), ".local", "share", "nmaptui"));
 });
